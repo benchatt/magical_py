@@ -41,7 +41,6 @@ class HexagramLine:
             draw = discard
         tally = sum([3 if n < 6 else 2 for n in counts])
         self.yang = tally % 2 # yang is 1, yin is 0
-        print(f"self.yang {self.yang}")
 
 
 class Hexagram:

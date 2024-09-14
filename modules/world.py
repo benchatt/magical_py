@@ -1,11 +1,14 @@
 import requests
 from datetime import datetime, timezone, timedelta
+import time
 from subprocess import check_output
 from .constants import World
 
 DAYTIME_FMT = "%I:%M:%S %p"
 GOOD_FMT = "%H:%M:%S"
-FULL_DATE_FMT = "%Y-%m-%d %H:%M:%S"
+FULL_DATE_FMT = "%A %Y-%m-%d %H:%M:%S"
+UTC_OFFSET_STANDARD = -(time.timezone / 3600)
+DAYLIGHT_SAVING = time.daylight
 
 def convert_tz(dt):
     raw_offset = check_output(["date", "+%z"]).strip().decode()
@@ -29,27 +32,56 @@ class Day:
     def __init__(self):
         # Get location, then sunrise API response
         loc = requests.get(World.LOC_API).content.strip().decode()
+        self.date_time = datetime.now().strftime(FULL_DATE_FMT)
+        # Following breaks if day of week has space
+        (day_of_week, date_, time_) = self.date_time.split(" ")
         (self.latitude, self.longitude) = loc.split(',')
-        sun_rs = requests.get(World.sunset_api_call(self.latitude, self.longitude))
-        sunjson = sun_rs.json().get("results")
+        day_rs = requests.get(World.navy_sun_moon_api_call(date_, self.latitude, self.longitude, UTC_OFFSET_STANDARD, DAYLIGHT_SAVING == 1))
+        sun_moon_json = day_rs.json().get("properties").get("data")
 
         # Parse API response into displayable times
-        sunrise_obj = datetime.strptime(sunjson.get("sunrise"), DAYTIME_FMT)
-        self.sunrise = convert_tz(sunrise_obj).strftime(GOOD_FMT)
-        sunset_obj = datetime.strptime(sunjson.get("sunset"), DAYTIME_FMT)
-        self.sunset = convert_tz(sunset_obj).strftime(GOOD_FMT)
-        noon_obj = datetime.strptime(sunjson.get("solar_noon"), DAYTIME_FMT)
-        self.noon = convert_tz(noon_obj).strftime(GOOD_FMT)
-        self.daylight = sunjson.get("day_length")
+        sundata = sun_moon_json.get("sundata")
+        self.sunrise = next(p for p in sundata if p.get("phen") == "Rise").get("time").split(" ")[0]
+        self.sunset = next(p for p in sundata if p.get("phen") == "Set").get("time").split(" ")[0]
+        self.noon = next(p for p in sundata if p.get("phen") == "Upper Transit").get("time").split(" ")[0]
+
+        closestphase = sun_moon_json.get("closestphase")
+        self.closest_phase_name = closestphase.get("phase")
+        cphase_time = closestphase.get("time").split(" ")[0]
+        closest_phase_dt = datetime(
+            year=closestphase.get("year"),
+            month=closestphase.get("month"),
+            day=closestphase.get("day"),
+            hour=int(cphase_time.split(":")[0]),
+            minute=int(cphase_time.split(":")[1])
+        )
+        self.closest_phase_stamp = closest_phase_dt.strftime(FULL_DATE_FMT)
+        self.current_phase = sun_moon_json.get("curphase") + f" ({sun_moon_json.get('fracillum')})"
+
+        moondata = sun_moon_json.get("moondata")
+        self.moonrise = next(p for p in moondata if p.get("phen") == "Rise").get("time").split(" ")[0]
+        self.moonset = next(p for p in moondata if p.get("phen") == "Set").get("time").split(" ")[0]
 
     def __repr__(self):
         output_str = ""
         output_str = output_str + f"Current location: {self.latitude}, {self.longitude}\n"
-        output_str = output_str + f"Current date & time: {datetime.now().strftime(FULL_DATE_FMT)}\n"
+        output_str = output_str + f"Current date & time: {self.date_time}\n"
         output_str = output_str + f"Sunrise: {self.sunrise}\n"
         output_str = output_str + f"Noon   : {self.noon}\n"
         output_str = output_str + f"Sunset : {self.sunset}\n"
-        output_str = output_str + f"Daylight Hours : {self.daylight}\n"
+        # output_str = output_str + f"Daylight Hours : {self.daylight}\n"
+
+        output_str = output_str + "\nMoon\n"
+        output_str = output_str + f"Current Phase: {self.current_phase}\n"
+        output_str = output_str + f"Closest Phase: {self.closest_phase_name}\n"
+        output_str = output_str + f"         Time: {self.closest_phase_stamp}\n\n"
+
+        if self.moonset < self.moonrise:
+            output_str = output_str + f"Moonset : {self.moonset}\n"
+            output_str = output_str + f"Moonrise: {self.moonrise}\n"
+        else:
+            output_str = output_str + f"Moonrise: {self.moonrise}\n"
+            output_str = output_str + f"Moonset : {self.moonset}\n"
         return output_str
 
 class Year:
@@ -126,6 +158,3 @@ class Year:
         output_str = output_str + f"{self.days_since_last_event} days since end of {self.last_season}.\n"
         output_str = output_str + f"{self.days_until_next_event} days until start of {self.next_season}.\n"
         return output_str
-
-class Moon:
-    def __init__(self, latitude, longitude):

@@ -27,7 +27,9 @@ def yijing_draw():
 
 if __name__ == "__main__":
     date_and_season()
+    print()
     tarot_pull(
         ["self", "love", "work", "kids", "hobbies"]
     )
+    print()
     yijing_draw()
