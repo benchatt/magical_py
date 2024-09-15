@@ -1,8 +1,10 @@
 import random
 import logging
+import yaml
 
 SPLIT_LAYER_SIZE = 4.0
 WIKI_URL = "https://en.wikipedia.org/wiki/"
+OBLIQUE_LOC = "data/obliques.yaml"
 
 random.seed()
 
@@ -175,3 +177,21 @@ class TarotDeck(Deck):
             card.orientation = random.randint(0,1)
             self.values.append(card)
         random.shuffle(self.values)
+
+class ObliqueDeck(Deck):
+    def __init__(self):
+        super().__init__()
+        with open(OBLIQUE_LOC) as fh:
+            prompts = yaml.safe_load(fh)
+        for prompt in prompts:
+            self.values.append(Card(prompt))
+
+    def setup_shuffle(self):
+        for _ in range(4):
+            self.shuffle()
+        self.cut()
+        for _ in range(4):
+            self.shuffle()
+        self.cut()
+        for card in self.values:
+            card.orientation = 0

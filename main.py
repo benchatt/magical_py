@@ -1,5 +1,5 @@
 import random
-from modules.cards import TarotDeck
+from modules.cards import TarotDeck, ObliqueDeck
 from modules.world import Day, Year
 from modules.yarrow import Yijing
 
@@ -25,6 +25,13 @@ def date_and_season():
 def yijing_draw():
     print(Yijing())
 
+def oblique_draw():
+    print("================\n")
+    print("Oblique Strategy")
+    deck = ObliqueDeck()
+    deck.setup_shuffle()
+    print(f"  {deck.deal()}")
+
 if __name__ == "__main__":
     date_and_season()
     print()
@@ -33,3 +40,4 @@ if __name__ == "__main__":
     )
     print()
     yijing_draw()
+    oblique_draw()

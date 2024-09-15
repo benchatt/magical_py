@@ -1,8 +1,8 @@
 import random
 import json
 
-HEXAGRAM_FILE = "hexagrams.json"
-YIJING_FILE = "yijing.json"
+HEXAGRAM_FILE = "data/hexagrams.json"
+YIJING_FILE = "data/yijing.json"
 
 def roll_with_zero(n: int) -> int:
     return random.randint(0,n)
