@@ -157,4 +157,13 @@ class Year:
         output_str = output_str + f"Current season is {self.season}\n"
         output_str = output_str + f"{self.days_since_last_event} days since end of {self.last_season}.\n"
         output_str = output_str + f"{self.days_until_next_event} days until start of {self.next_season}.\n"
+        lengthening = self.season.lower() == "winter" or self.season.lower() == "spring"
+        first_half = self.days_since_last_event <= self.days_until_next_event
+        quickly = (
+            first_half and (self.season.lower() == "autumn" or self.season.lower() == "spring")
+            or (not first_half) and (self.season.lower() == "summer" or self.season.lower == "winter")
+        )
+        length_word = "lengthening" if lengthening else "shortening"
+        quick_word = "quickly" if quickly else "slowly"
+        output_str = output_str + f"Days are {length_word} {quick_word}."
         return output_str

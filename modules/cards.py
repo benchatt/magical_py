@@ -5,6 +5,7 @@ import yaml
 SPLIT_LAYER_SIZE = 4.0
 WIKI_URL = "https://en.wikipedia.org/wiki/"
 OBLIQUE_LOC = "data/obliques.yaml"
+EMOJI_LOC = "data/emoji.yaml"
 
 random.seed()
 
@@ -195,3 +196,21 @@ class ObliqueDeck(Deck):
         self.cut()
         for card in self.values:
             card.orientation = 0
+
+class EmojiDeck(Deck):
+    def __init__(self):
+        super().__init__()
+        with open(EMOJI_LOC) as fh:
+            prompts = yaml.safe_load(fh)
+        for prompt in prompts:
+            self.values.append(Card(prompt))
+
+    def deal(self, n=1) -> Card:
+        try:
+            idx = random.randint(0, len(self.values) - 1)
+            dealt = self.values[idx]
+            del(self.values[idx])
+            self.discard.append(dealt)
+        except IndexError:
+            dealt = None
+        return dealt
